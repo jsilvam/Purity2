@@ -42,19 +42,20 @@ public class Purity {
 		
 		
 		System.out.println("Copiling: "+sourceFolder);
-		Process p=Runtime.getRuntime().exec("mvn -f "+sourceFolder.getAbsolutePath()+" compile");
+		Process p=Runtime.getRuntime().exec("cmd /C mvn -f "+sourceFolder.getAbsolutePath()+" compile");
 		BufferedReader reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
 		while ((reader.readLine()) != null) {}
 		p.waitFor();
-		
+		System.out.println("Estatus da compilação: "+p.exitValue());
 		
 		System.out.println("Copiling: "+targetFolder);
-		p=Runtime.getRuntime().exec("mvn -f "+targetFolder.getAbsolutePath()+" compile");
+		p=Runtime.getRuntime().exec("cmd /C mvn -f "+targetFolder.getAbsolutePath()+" compile");
 		reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
 		while ((reader.readLine()) != null) {}
 		p.waitFor();
+		System.out.println("Estatus da compilação: "+p.exitValue());
 		
 		return 0;
 	}
