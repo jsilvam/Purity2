@@ -63,7 +63,6 @@ public class Purity {
 		
 		InvocationRequest request = new DefaultInvocationRequest();
 		request.setPomFile( new File( sourceFolder,"pom.xml" ) );
-		request.setMavenOpts("DskipTests");
 		request.setGoals( Arrays.asList( "package" ) );
 		invoker.execute( request );
 		
@@ -84,22 +83,24 @@ public class Purity {
 		System.out.println(f);
 		System.out.println(sourceFolder);
 		
+		File command=new File(sourceFolder,"command.sh");
+		fw= new FileWriter(command);
+		fw.write("\n java -ea");
+		fw.write(" -classpath randoop-all-3.1.5.jar:"+f.getAbsolutePath());
+		fw.write(" randoop.main.Main gentests ");
+		fw.write(" --classlist="+sourceFolder+"/classesList.txt");
+		fw.write(" --timelimit=10");
+		fw.write(" --junit-output-dir="+sourceFolder);
+		fw.flush();
+		fw.close();
 		
-		String command = "java -ea -classpath %AllUsersProfile%\\Projeto\\Downloads\\jopt-simple\\35cdaf9aab77e400b3f4051d177a6f0d79af037a\\6505beb2c7963983d74b1ea7c9d7d1f408d43eae\\target\\jopt-simple-5.0-SNAPSHOT.jar:"
-		+ "%AllUsersProfile%/Projeto/randoop-all-3.1.5.jar"
-				+ "randoop.main.Main gentests --classlist=" 
-				+ "%AllUsersProfile%\\Projeto\\Downloads\\jopt-simple\\35cdaf9aab77e400b3f4051d177a6f0d79af037a\\6505beb2c7963983d74b1ea7c9d7d1f408d43eae\\classesList.txt --timelimit=10";
-		Process p=Runtime.getRuntime().exec(command);
+		Process p=Runtime.getRuntime().exec("bash "+command);
 		BufferedReader reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
 		String s;
-		while ((s=reader.readLine()) != null) {System.out.println(s); }
+		while ((s=reader.readLine()) != null) {System.out.println(s);}
 		p.waitFor();
-		System.out.println(p.exitValue());
-		System.out.println(command);
-		
-		
-
+		System.out.println("Estatus da compilação: "+p.exitValue());
 		
 		System.exit(0);
 		

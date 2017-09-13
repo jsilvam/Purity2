@@ -18,16 +18,13 @@ public class GithubDownloader {
 	public GithubDownloader(String repositoryUrl){
 		this.repositoryUrl=repositoryUrl;
 		String aux=repositoryUrl.substring(repositoryUrl.lastIndexOf("/"));
-		this.location=new File("C:/ProgramData/Projeto/Downloads/"+aux);
 		
-		/*
 		if(System.getProperty("os.name").contains("Linux"))
 			this.location=new File("/tmp/Projeto/Downloads/"+aux);
 		else
 			this.location=new File("C:/tmp/Projeto/Downloads/"+aux);
 		if(!this.location.exists())
 			this.location.mkdirs();
-		*/
 	}
 	
 	public boolean setLocation(String location){
