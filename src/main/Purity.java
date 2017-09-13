@@ -44,11 +44,7 @@ public class Purity {
 		
 		GithubDownloader git=new GithubDownloader(urlRepository);
 		
-		
-		if(System.getProperty("os.name").contains("Linux"))
-			git.setLocation("/tmp/Projeto/Downloads/"+commit);
-		else
-			git.setLocation("c:/tmp/Projeto/Downloads/"+commit);
+		git.setLocation(git.getLocation()+"/"+commit);
 		
 		
 		
@@ -67,6 +63,7 @@ public class Purity {
 		
 		InvocationRequest request = new DefaultInvocationRequest();
 		request.setPomFile( new File( sourceFolder,"pom.xml" ) );
+		request.setMavenOpts("DskipTests");
 		request.setGoals( Arrays.asList( "package" ) );
 		invoker.execute( request );
 		
@@ -88,14 +85,18 @@ public class Purity {
 		System.out.println(sourceFolder);
 		
 		
-		Process p=Runtime.getRuntime().exec("java -ea -classpath "
-				+ f.getAbsolutePath()+":/tmp/Projeto/randoop-all-3.1.5.jar "
-				+ "randoop.main.Main gentests --classlist="+sourceFolder +"classesList.txt --timelimit=10");
+		String command = "java -ea -classpath %AllUsersProfile%\\Projeto\\Downloads\\jopt-simple\\35cdaf9aab77e400b3f4051d177a6f0d79af037a\\6505beb2c7963983d74b1ea7c9d7d1f408d43eae\\target\\jopt-simple-5.0-SNAPSHOT.jar:"
+		+ "%AllUsersProfile%/Projeto/randoop-all-3.1.5.jar"
+				+ "randoop.main.Main gentests --classlist=" 
+				+ "%AllUsersProfile%\\Projeto\\Downloads\\jopt-simple\\35cdaf9aab77e400b3f4051d177a6f0d79af037a\\6505beb2c7963983d74b1ea7c9d7d1f408d43eae\\classesList.txt --timelimit=10";
+		Process p=Runtime.getRuntime().exec(command);
 		BufferedReader reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
-		while ((reader.readLine()) != null) {}
+		String s;
+		while ((s=reader.readLine()) != null) {System.out.println(s); }
 		p.waitFor();
 		System.out.println(p.exitValue());
+		System.out.println(command);
 		
 		
 

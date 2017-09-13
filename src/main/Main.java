@@ -11,8 +11,12 @@ public class Main {
 	
 	private static void check(String repositoryUrl) throws Exception {
 		
-		String dir  = "/home/jaziel/Dropbox/UFCG/Projeto/Dados/CSVs/Refatoramentos"; //Linux
-		//String dir  = "C:\\Users\\Jaziel Moreira\\Dropbox\\UFCG\\Projeto\\Dados\\CSVs\\Refatoramentos"; //Windows
+		String dir;
+		if(System.getProperty("os.name").contains("Linux"))
+			dir  = "/home/jaziel/Dropbox/UFCG/Projeto/Dados/CSVs/Refatoramentos"; //Linux
+		else
+			dir  = "C:\\Users\\Jaziel Moreira\\Dropbox\\UFCG\\Projeto\\Dados\\CSVs\\Refatoramentos"; //Windows
+		
 		String aux=repositoryUrl.substring(repositoryUrl.lastIndexOf("/")+1);
 		
 		Purity p=new Purity(repositoryUrl);
