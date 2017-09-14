@@ -44,23 +44,31 @@ public abstract class FileUtils {
 		
 	}
 	
-	public static File find(File srcFolder,String regex){
+	public static File findSingleFile(File srcFolder,String regex){
 		
 		File[] files=srcFolder.listFiles();
 		File f;
 		for(File file:files) {
-			if(file.isDirectory()) {
-				if((f=find(new File(srcFolder,file.getName()),regex))!=null)
+			if(file.isDirectory()) 
+				if((f=findSingleFile(file,regex))!=null)
 					return f;
-			}
 			else 
 				if(file.getName().matches(regex))
 					return file;
-				
 		}
-		
 		return null;
-		
 	}
-
+	
+	public static List<File> findFiles(File srcFolder,String regex) {
+		List<File> result=new ArrayList<File>();
+		File[] files=srcFolder.listFiles();
+		for(File file:files) {
+			if(file.isDirectory())
+				result.addAll(findFiles(file,regex));
+			else 
+				if(file.getName().matches(regex))
+					result.add(file);
+		}
+		return result;
+	}
 }

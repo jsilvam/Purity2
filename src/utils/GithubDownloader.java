@@ -23,6 +23,7 @@ public class GithubDownloader {
 			this.location=new File("/tmp/Projeto/Downloads/"+aux);
 		else
 			this.location=new File("C:/tmp/Projeto/Downloads/"+aux);
+		
 		if(!this.location.exists())
 			this.location.mkdirs();
 	}
