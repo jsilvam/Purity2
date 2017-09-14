@@ -7,10 +7,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import randoop.main.Main;
 
 import utils.FileUtils;
 import utils.GithubDownloader;
@@ -21,6 +20,8 @@ import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
 
 
 
@@ -60,36 +61,18 @@ public class Purity {
 		File classesToTest=this.getClassesToTest(sourceFolder);
 		
 		List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
-		for(File f:tests)
+		List<File> compiledTests=new ArrayList<File>();
+		for(File f:tests) {
 			System.out.println(f);
+			compiledTests.add(this.compileJavaFile(f));
+			System.out.println(compiledTests.get(0)+": "+compiledTests.get(0).exists());
+		}
+		
+		List<Result> result=this.runTests(compiledTests);
 		
 		System.exit(0);
 		
 		
-		
-		
-		/*Process p=Runtime.getRuntime().exec("mvn -f "+sourceFolder.getAbsolutePath()+" clean");
-		BufferedReader reader =
-				new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String s;
-		while ((s=reader.readLine()) != null) {System.out.println(s);}
-		p.waitFor();
-		System.out.println("Estatus da compila��o: "+p.exitValue());*/
-		
-		
-		
-		File targetFile=git.downloadCommit(commit);
-		File targetFolder=ZipExtractor.extract(targetFile, new File(git.getLocation(),commit));
-		
-		/*
-		System.out.println("Copiling: "+targetFolder);
-		p=Runtime.getRuntime().exec("mvn -f "+targetFolder.getAbsolutePath()+" compile");
-		reader =
-				new BufferedReader(new InputStreamReader(p.getInputStream()));
-		while ((reader.readLine()) != null) {}
-		p.waitFor();
-		System.out.println("Estatus da compila��o: "+p.exitValue());
-		*/
 		return 0;
 	}
 	
@@ -140,13 +123,33 @@ public class Purity {
 		BufferedReader reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
 		String s;
-		while ((s=reader.readLine()) != null) {
+		while ((s=reader.readLine()) != null) 
 			System.out.println(s);
-			}
 		p.waitFor();
 		return FileUtils.findFiles(outputDir, "RegressionTest.*.java");
 	}
 	
+	
+	private File compileJavaFile(File file) throws IOException, InterruptedException{
+		Process p=Runtime.getRuntime().exec("javac "+file);
+		BufferedReader reader =
+				new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String s;
+		while ((s=reader.readLine()) != null) 
+			System.out.println(s);
+		p.waitFor();
+		return new File(file.getAbsolutePath().replaceAll("java$", "class"));
+		
+	}
+	
+	private List<Result> runTests(List<File> tests) throws ClassNotFoundException {
+		JUnitCore junit = new JUnitCore();
+		List<Result> result=new ArrayList<Result>();
+		for(File test:tests) {
+			result.add(junit.run(Class.forName(test.getAbsolutePath())));
+		}
+		return result;
+	}
 	
 	private void deleteDirectory(File dir){
 		File[] contents=dir.listFiles();
