@@ -1,7 +1,9 @@
 package utils;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,14 +46,15 @@ public abstract class FileUtils {
 		
 	}
 	
-	public static File findSingleFile(File srcFolder,String regex){
+	public static File findSingleFile(File srcFolder,String regex) throws IOException{
 		
 		File[] files=srcFolder.listFiles();
 		File f;
 		for(File file:files) {
-			if(file.isDirectory()) 
+			if(file.isDirectory()) { 
 				if((f=findSingleFile(file,regex))!=null)
 					return f;
+			}
 			else 
 				if(file.getName().matches(regex))
 					return file;

@@ -61,22 +61,18 @@ public class Purity {
 		File classesToTest=this.getClassesToTest(sourceFolder);
 		
 		List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
-		List<File> compiledTests=new ArrayList<File>();
-		for(File f:tests) {
-			System.out.println(f);
-			compiledTests.add(this.compileJavaFile(f));
-			System.out.println(compiledTests.get(0)+": "+compiledTests.get(0).exists());
-		}
-		
+		List<File> compiledTests=compileTests(compiledProject,tests);
+		System.out.println(compiledTests);
+		System.exit(0);
 		List<Result> result=this.runTests(compiledTests);
 		
-		System.exit(0);
+		
 		
 		
 		return 0;
 	}
 	
-	private File compileProject(File projectFolder) throws MavenInvocationException{
+	private File compileProject(File projectFolder) throws MavenInvocationException, IOException{
 		Invoker invoker = new DefaultInvoker();
 		if(System.getProperty("os.name").contains("Linux"))
 			invoker.setMavenHome(new File("/usr/share/maven"));
@@ -85,7 +81,6 @@ public class Purity {
 		
 		InvocationRequest request = new DefaultInvocationRequest();
 		request.setPomFile( new File( projectFolder,"pom.xml" ) );
-		request.setMavenOpts("DskipTests");
 		request.setGoals( Arrays.asList( "package" ) );
 		invoker.execute( request );
 		
@@ -108,9 +103,10 @@ public class Purity {
 	}
 	
 	private List<File> genarateTests(File project,File classesList, int timeLimit, File outputDir) throws IOException, InterruptedException {
-		File command=new File(System.getProperty("java.io.tmpdir")+"command.sh");
+		File command=new File(outputDir,"command.sh");
 		FileWriter fw= new FileWriter(command);
-		fw.write("\n java -ea");
+		fw.write("pwd");
+		fw.write("\njava -ea");
 		fw.write(" -classpath lib/randoop-all-3.1.5.jar:"+project);
 		fw.write(" randoop.main.Main gentests ");
 		fw.write(" --classlist="+classesList);
@@ -123,22 +119,28 @@ public class Purity {
 		BufferedReader reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
 		String s;
-		while ((s=reader.readLine()) != null) 
+		while ((s=reader.readLine()) != null)
 			System.out.println(s);
 		p.waitFor();
 		return FileUtils.findFiles(outputDir, "RegressionTest.*.java");
 	}
 	
 	
-	private File compileJavaFile(File file) throws IOException, InterruptedException{
-		Process p=Runtime.getRuntime().exec("javac "+file);
+	private List<File> compileTests(File project,List<File> testFiles) throws IOException, InterruptedException{
+		String command="javac -classpath lib/junit-4.12.jar:"+project;
+		
+		for(File file:testFiles)
+			command+=" "+file;
+		
+		
+		Process p=Runtime.getRuntime().exec(command);
 		BufferedReader reader =
 				new BufferedReader(new InputStreamReader(p.getInputStream()));
 		String s;
-		while ((s=reader.readLine()) != null) 
+		while ((s=reader.readLine()) != null)
 			System.out.println(s);
 		p.waitFor();
-		return new File(file.getAbsolutePath().replaceAll("java$", "class"));
+		return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
 		
 	}
 	
