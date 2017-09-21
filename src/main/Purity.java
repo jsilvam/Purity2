@@ -13,7 +13,6 @@ import java.util.List;
 
 import utils.FileUtils;
 import utils.GithubDownloader;
-import utils.XMLUtils;
 import utils.ZipExtractor;
 
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -61,14 +60,16 @@ public class Purity {
 		//Listar Classes
 		File classesToTest=this.getClassesToTest(sourceFolder);
 		
-		System.exit(0);
 		
-		/*List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
+		
+		List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
 		List<File> compiledTests=compileTests(compiledProject,tests);
 		System.out.println(compiledTests);
 		
+		System.exit(0);
+		
 		List<Result> result=this.runTests(compiledTests);
-		*/
+		
 		
 		
 		
@@ -88,18 +89,20 @@ public class Purity {
 		invoker.execute( request );
 		
 		//encontrar o projeto compilado
-		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
+		List<File> modules=FileUtils.getModules(new File(projectFolder,"pom.xml"));
 		List<File> result=new ArrayList<File>();
-		for(File module:modules)
-			result.add(FileUtils.findSingleFile(new File(module,"target"), ".*[^(sources)].jar"));
-		
+		for(File module:modules) {
+			File folder=new File(module,"target");
+			if(folder.exists())
+				result.add(FileUtils.findSingleFile(folder, ".*[^(sources)].jar"));
+		}
 		return result;
 	}
 	
 	
 	private File getClassesToTest(File projectFolder) throws Exception {
 		File file=new File(projectFolder,"classesList.txt");
-		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
+		List<File> modules=FileUtils.getModules(new File(projectFolder,"pom.xml"));
 		FileWriter fw= new FileWriter(file);
 		
 		for(File module:modules) {
@@ -110,28 +113,25 @@ public class Purity {
 				fw.flush();
 			}
 		}
-		
-		
 		fw.close();
-		
-		
-		
-		
 		return file;
 	}
 	
-	private List<File> genarateTests(File project,File classesList, int timeLimit, File outputDir) throws IOException, InterruptedException {
+	private List<File> genarateTests(List<File> projectFiles,File classesList, int timeLimit, File outputDir) throws IOException, InterruptedException {
 		File command=new File(outputDir,"command.sh");
 		FileWriter fw= new FileWriter(command);
 		fw.write("pwd");
 		fw.write("\njava -ea");
-		fw.write(" -classpath lib/randoop-all-3.1.5.jar:"+project);
+		fw.write(" -classpath lib/randoop-all-3.1.5.jar");
+		for(File file:projectFiles)
+			fw.write(":"+file);
 		fw.write(" randoop.main.Main gentests ");
 		fw.write(" --classlist="+classesList);
 		fw.write(" --timelimit="+timeLimit);
 		fw.write(" --junit-output-dir="+outputDir);
 		fw.flush();
 		fw.close();
+		
 		
 		Process p=Runtime.getRuntime().exec("bash "+command);
 		BufferedReader reader =
@@ -144,12 +144,16 @@ public class Purity {
 	}
 	
 	
-	private List<File> compileTests(File project,List<File> testFiles) throws IOException, InterruptedException{
-		String command="javac -classpath lib/junit-4.12.jar:"+project;
+	private List<File> compileTests(List<File> projectFiles,List<File> testFiles) throws IOException, InterruptedException{
+		String command="javac -classpath lib/junit-4.12.jar";
+		
+		for(File file:projectFiles)
+			command+=":"+file;
 		
 		for(File file:testFiles)
 			command+=" "+file;
 		
+		System.out.println(command);
 		
 		Process p=Runtime.getRuntime().exec(command);
 		BufferedReader reader =

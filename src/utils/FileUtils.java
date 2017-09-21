@@ -7,6 +7,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+
 public abstract class FileUtils {
 	
 	public static List<String> listClass(File srcFolder){
@@ -21,7 +27,8 @@ public abstract class FileUtils {
 			if(file.isDirectory())
 				result.addAll(listClass(file,file.getName()));
 			else
-				if(file.getName().toLowerCase().endsWith(".java"))
+				if(file.getName().toLowerCase().endsWith(".java") && 
+						!file.getName().toLowerCase().equals("package-info.java"))
 					result.add(file.getName().substring(0, file.getName().lastIndexOf(".")));
 				
 		}
@@ -40,7 +47,8 @@ public abstract class FileUtils {
 			if(file.isDirectory())
 				result.addAll(listClass(file,name+"."+file.getName()));
 			else
-				if(file.getName().toLowerCase().endsWith(".java"))
+				if(file.getName().toLowerCase().endsWith(".java") && 
+						!file.getName().toLowerCase().equals("package-info.java"))
 					result.add(name+"."+file.getName().substring(0, file.getName().lastIndexOf(".")));
 				
 		}
@@ -78,5 +86,26 @@ public abstract class FileUtils {
 		return result;
 	}
 	
-	
+	public static List<File> getModules(File xmlFile) throws Exception{
+		List<File> result=new ArrayList<File>();
+		
+		if(!xmlFile.exists())
+			return result;
+		
+		result.add(xmlFile.getParentFile());
+		
+		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+		Document doc = dBuilder.parse(xmlFile);
+		
+		NodeList nList=doc.getElementsByTagName("module");
+		
+		for(int i=0; i<nList.getLength();i++) {
+			File module=new File(xmlFile.getParentFile(),nList.item(i).getTextContent());
+			result.add(module);
+			result.addAll(getModules(new File(module,"pom.xml")));
+		}
+		
+		return result;
+	}
 }
