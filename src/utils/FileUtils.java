@@ -10,6 +10,9 @@ import java.util.List;
 public abstract class FileUtils {
 	
 	public static List<String> listClass(File srcFolder){
+		if(!srcFolder.exists())
+			return new ArrayList<String>();
+		
 		List<String> result= new ArrayList<String>();
 		
 		File[] files=srcFolder.listFiles();
@@ -74,4 +77,6 @@ public abstract class FileUtils {
 		}
 		return result;
 	}
+	
+	
 }

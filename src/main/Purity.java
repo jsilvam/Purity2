@@ -13,6 +13,7 @@ import java.util.List;
 
 import utils.FileUtils;
 import utils.GithubDownloader;
+import utils.XMLUtils;
 import utils.ZipExtractor;
 
 import org.apache.maven.shared.invoker.DefaultInvocationRequest;
@@ -55,24 +56,26 @@ public class Purity {
 		System.out.println(sourceFolder.getAbsolutePath());
 		
 		//compilar o projeto
-		File compiledProject=this.compileProject(sourceFolder);
+		List<File> compiledProject=this.compileProject(sourceFolder);
 		
 		//Listar Classes
 		File classesToTest=this.getClassesToTest(sourceFolder);
 		
-		List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
+		System.exit(0);
+		
+		/*List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
 		List<File> compiledTests=compileTests(compiledProject,tests);
 		System.out.println(compiledTests);
-		System.exit(0);
-		List<Result> result=this.runTests(compiledTests);
 		
+		List<Result> result=this.runTests(compiledTests);
+		*/
 		
 		
 		
 		return 0;
 	}
 	
-	private File compileProject(File projectFolder) throws MavenInvocationException, IOException{
+	private List<File> compileProject(File projectFolder) throws Exception{
 		Invoker invoker = new DefaultInvoker();
 		if(System.getProperty("os.name").contains("Linux"))
 			invoker.setMavenHome(new File("/usr/share/maven"));
@@ -81,24 +84,39 @@ public class Purity {
 		
 		InvocationRequest request = new DefaultInvocationRequest();
 		request.setPomFile( new File( projectFolder,"pom.xml" ) );
-		request.setGoals( Arrays.asList( "package" ) );
+		request.setGoals( Arrays.asList( "install" , "-DskipTests") );
 		invoker.execute( request );
 		
 		//encontrar o projeto compilado
-		return FileUtils.findSingleFile(projectFolder, ".*[^(sources)].jar");
+		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
+		List<File> result=new ArrayList<File>();
+		for(File module:modules)
+			result.add(FileUtils.findSingleFile(new File(module,"target"), ".*[^(sources)].jar"));
+		
+		return result;
 	}
 	
 	
-	private File getClassesToTest(File projectFolder) throws IOException {
+	private File getClassesToTest(File projectFolder) throws Exception {
 		File file=new File(projectFolder,"classesList.txt");
+		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
 		FileWriter fw= new FileWriter(file);
-		List<String> classes=FileUtils.listClass(new File(projectFolder,"src/main/java"));
-		for(String c: classes) {
-			fw.write(c);
-			fw.write("\n");
-			fw.flush();
+		
+		for(File module:modules) {
+			List<String> classes=FileUtils.listClass(new File(module,"src/main/java"));
+			for(String c: classes) {
+				fw.write(c);
+				fw.write("\n");
+				fw.flush();
+			}
 		}
+		
+		
 		fw.close();
+		
+		
+		
+		
 		return file;
 	}
 	
