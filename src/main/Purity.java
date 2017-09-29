@@ -61,14 +61,14 @@ public class Purity {
 		File classesToTest=this.getClassesToTest(sourceFolder);
 		
 		
-		
+		/*
 		List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
 		List<File> compiledTests=compileTests(compiledProject,tests);
 		System.out.println(compiledTests);
-		
+		*/
 		System.exit(0);
 		
-		List<Result> result=this.runTests(compiledTests);
+		
 		
 		
 		
@@ -112,6 +112,7 @@ public class Purity {
 				fw.write("\n");
 				fw.flush();
 			}
+			System.out.println(module.getName());
 		}
 		fw.close();
 		return file;
@@ -173,6 +174,29 @@ public class Purity {
 			result.add(junit.run(Class.forName(test.getAbsolutePath())));
 		}
 		return result;
+	}
+	
+	private File prepareLib(File projectFolder) throws IOException {
+		File lib=new File(projectFolder,"library");
+		List<File> jars=FileUtils.findFiles(projectFolder, ".*[^(sources)].jar");
+		for(File f:jars) {
+			File dest=new File(lib,f.getName());
+			FileUtils.copyFile(f, dest);
+		}
+		return lib;
+	}
+	
+	private boolean runSafeRefactor(File sourceFolder, File targetFolder) throws Exception {
+		List<File> sourceModules=FileUtils.getModules(new File(sourceFolder,"pom.xml"));
+		List<File> targetModules=FileUtils.getModules(new File(targetFolder,"pom.xml"));
+		if(sourceModules.size()!=targetModules.size())
+			return false;
+		
+		File sourceLib=prepareLib(sourceFolder);
+		File targetLib=prepareLib(sourceFolder);
+		
+		
+		return false;
 	}
 	
 	private void deleteDirectory(File dir){

@@ -1,9 +1,12 @@
 package utils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -107,5 +110,20 @@ public abstract class FileUtils {
 		}
 		
 		return result;
+	}
+	
+	public static void copyFile(File sourceFile, File destinationFile) throws IOException {
+		FileInputStream inputStream = new FileInputStream(sourceFile);
+		FileOutputStream outputStream = new FileOutputStream(destinationFile);
+		FileChannel inChannel = inputStream.getChannel();
+		FileChannel outChannel = outputStream.getChannel();
+		try {	
+			inChannel.transferTo(0, inChannel.size(), outChannel);
+		} finally {
+			inChannel.close();
+			outChannel.close();
+			inputStream.close();
+			outputStream.close();
+		}
 	}
 }
