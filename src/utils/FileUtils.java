@@ -89,28 +89,7 @@ public abstract class FileUtils {
 		return result;
 	}
 	
-	public static List<File> getModules(File xmlFile) throws Exception{
-		List<File> result=new ArrayList<File>();
-		
-		if(!xmlFile.exists())
-			return result;
-		
-		result.add(xmlFile.getParentFile());
-		
-		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-		Document doc = dBuilder.parse(xmlFile);
-		
-		NodeList nList=doc.getElementsByTagName("module");
-		
-		for(int i=0; i<nList.getLength();i++) {
-			File module=new File(xmlFile.getParentFile(),nList.item(i).getTextContent());
-			result.add(module);
-			result.addAll(getModules(new File(module,"pom.xml")));
-		}
-		
-		return result;
-	}
+
 	
 	public static void copyFile(File sourceFile, File destinationFile) throws IOException {
 		FileInputStream inputStream = new FileInputStream(sourceFile);
@@ -126,4 +105,6 @@ public abstract class FileUtils {
 			outputStream.close();
 		}
 	}
+	
+
 }
