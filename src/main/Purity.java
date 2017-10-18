@@ -20,9 +20,6 @@ import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.Invoker;
-import org.apache.maven.shared.invoker.MavenInvocationException;
-import org.junit.runner.JUnitCore;
-import org.junit.runner.Result;
 
 
 
@@ -64,14 +61,15 @@ public class Purity {
 		
 		
 		
-		List<File> tests=this.genarateTests(compiledProject, classesToTest, 10, sourceFolder);
-		List<File> compiledTests=compileTests(compiledProject,tests);
-		System.out.println(compiledTests);
+		File testsFolder=this.genarateTests(compiledProject, classesToTest, 10, git.getLocation());
+		compileTests(compiledProject,testsFolder);
+		//List<File> compiledTests=compileTests(compiledProject,testsFolder);
+		//System.out.println(compiledTests);
 		
+		
+		
+		File report=this.runTests(compiledProject,testsFolder);
 		System.exit(0);
-		
-		List<Result> result=this.runTests(compiledTests);
-		
 		
 		
 		
@@ -94,7 +92,6 @@ public class Purity {
 		invoker.execute( request );
 		
 		//encontrar o projeto compilado
-		
 		List<File> result=new ArrayList<File>();
 		for(File module:modules) {
 			File folder=new File(module,"target");
@@ -122,43 +119,68 @@ public class Purity {
 		return file;
 	}
 	
-	private List<File> genarateTests(List<File> projectFiles,File classesList, int timeLimit, File outputDir) throws IOException, InterruptedException {
-		File command=new File(outputDir,"command.sh");
+	private File genarateTests(List<File> projectFiles,File classesList, int timeLimit, File outputDir) throws IOException, InterruptedException {
+		File outDir=new File(outputDir,"tempTest");
+		if(!outDir.exists())
+			outDir.mkdirs();
+		File command=new File(outDir,"generateCommand.sh");
 		FileWriter fw= new FileWriter(command);
-		fw.write("pwd");
-		fw.write("\njava -ea");
-		fw.write(" -classpath lib/randoop-all-3.1.5.jar");
+		fw.write("java -ea");
+		fw.write(" -classpath jars/*");
 		for(File file:projectFiles)
 			fw.write(":"+file);
 		fw.write(" randoop.main.Main gentests ");
 		fw.write(" --classlist="+classesList);
 		fw.write(" --timelimit="+timeLimit);
-		fw.write(" --junit-output-dir="+outputDir);
+		fw.write(" --junit-output-dir="+outDir);
 		fw.flush();
 		fw.close();
 		
-		
-		Process p=Runtime.getRuntime().exec("bash "+command);
-		BufferedReader reader =
-				new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String s;
-		while ((s=reader.readLine()) != null)
-			System.out.println(s);
-		p.waitFor();
-		return FileUtils.findFiles(outputDir, "RegressionTest.*.java");
+		runProcess("bash "+command);
+		return outDir;
+		//return FileUtils.findFiles(outDir, "RegressionTest.*.java");
 	}
 	
 	
-	private List<File> compileTests(List<File> projectFiles,List<File> testFiles) throws IOException, InterruptedException{
-		String command="javac -classpath lib/junit-4.12.jar";
-		
+	private void compileTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException{
+		File command=new File(testFolder,"compileCommand.sh");
+		FileWriter fw= new FileWriter(command);
+		fw.write("javac -classpath jars/*");
 		for(File file:projectFiles)
-			command+=":"+file;
+			fw.write(":"+file);
+		fw.write(" $(find "+testFolder+"/* | grep .java)");
+		fw.flush();
+		fw.close();
 		
-		for(File file:testFiles)
-			command+=" "+file;
+		runProcess("bash "+command);
+		//return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
 		
-		System.out.println(command);
+	}
+	
+	private File runTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
+		File XMLReport= new File(testFolder,"junit_report.xml");
+		File command=new File(testFolder,"runCommand.sh");
+		FileWriter fw= new FileWriter(command);
+		fw.write("java -classpath jars/*:");
+		fw.write(testFolder+"/.");
+		for(File file:projectFiles)
+			fw.write(":"+file);
+		fw.write(" -Dorg.schmant.task.junit4.target="+XMLReport);
+		fw.write(" barrypitman.junitXmlFormatter.Runner RegressionTest");
+		fw.flush();
+		fw.close();
+		
+		runProcess("bash "+command);
+		return XMLReport;
+		/*JUnitCore junit = new JUnitCore();
+		List<Result> result=new ArrayList<Result>();
+		for(File test:tests) {
+			result.add(junit.run(Class.forName(test.getAbsolutePath())));
+		}
+		return result;*/
+	}
+	
+	private void runProcess(String command) throws IOException, InterruptedException {
 		
 		Process p=Runtime.getRuntime().exec(command);
 		BufferedReader reader =
@@ -167,18 +189,10 @@ public class Purity {
 		while ((s=reader.readLine()) != null)
 			System.out.println(s);
 		p.waitFor();
-		return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
+		//return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
 		
 	}
 	
-	private List<Result> runTests(List<File> tests) throws ClassNotFoundException {
-		JUnitCore junit = new JUnitCore();
-		List<Result> result=new ArrayList<Result>();
-		for(File test:tests) {
-			result.add(junit.run(Class.forName(test.getAbsolutePath())));
-		}
-		return result;
-	}
 	
 	private void deleteDirectory(File dir){
 		File[] contents=dir.listFiles();
