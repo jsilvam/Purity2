@@ -20,6 +20,15 @@ import java.util.List;
 
 
 public abstract class XMLUtils {
+	
+	public static NodeList getElementsByTagName(File xmlFile,String tag) throws ParserConfigurationException, SAXException, IOException {
+		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+		Document doc = dBuilder.parse(xmlFile);
+		
+		return doc.getElementsByTagName(tag);
+		
+	}
 
 	public static List<File> getModules(File xmlFile) throws Exception{
 		List<File> result=new ArrayList<File>();
@@ -29,13 +38,7 @@ public abstract class XMLUtils {
 		
 		result.add(xmlFile.getParentFile());
 		
-		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-		Document doc = dBuilder.parse(xmlFile);
-		
-		NodeList nList=doc.getElementsByTagName("module");
-		
-		
+		NodeList nList=getElementsByTagName(xmlFile,"module");
 		for(int i=0; i<nList.getLength();i++) {
 			File module=new File(xmlFile.getParentFile(),nList.item(i).getTextContent());
 			result.addAll(getModules(new File(module,"pom.xml")));
