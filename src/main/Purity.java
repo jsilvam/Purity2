@@ -51,25 +51,32 @@ public class Purity {
 		File sourceFile=git.downloadCommit(parent);
 		File sourceFolder=ZipExtractor.extract(sourceFile, new File(git.getLocation(),parent));
 		
+		File targetFile=git.downloadCommit(commit);
+		File targetFolder=ZipExtractor.extract(targetFile, new File(git.getLocation(),commit));
+		
 		System.out.println(sourceFolder.getAbsolutePath());
 		
 		
 		//compilar o projeto
-		List<File> compiledProject=this.compileProject(sourceFolder);
+		List<File> compiledSourceProject=this.compileProject(sourceFolder);
+		List<File> compiledTargetProject=this.compileProject(targetFolder);
 		
 		//Listar Classes
 		File classesToTest=test.getClassesToTest(sourceFolder);
 		
 		
 		
-		File testsFolder=test.genarateTests(compiledProject, classesToTest, 10, git.getLocation());
-		test.compileTests(compiledProject,testsFolder);
+		File testsFolder=test.genarateTests(compiledSourceProject, classesToTest, 30, git.getLocation());
+		test.compileTests(compiledSourceProject,testsFolder);
 		//List<File> compiledTests=compileTests(compiledProject,testsFolder);
 		//System.out.println(compiledTests);
 		
 		
 		
-		File report=test.run(compiledProject,testsFolder);
+		File sourceReport=test.runTests(compiledSourceProject,testsFolder);
+		File targetReport=test.runTests(compiledTargetProject,testsFolder);
+		
+		System.out.println(test.compare(sourceReport, targetReport));
 		System.exit(0);
 		
 		return 0;

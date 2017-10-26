@@ -5,16 +5,41 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
+
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import utils.FileUtils;
 import utils.XMLUtils;
 
 public class Test {
 	
-public File run(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
+	public boolean compare(File report1, File report2) throws ParserConfigurationException, SAXException, IOException {
+		NodeList nList=XMLUtils.getElementsByTagName(report1, "failure");
+		List<String> l1=new ArrayList<String>();
+		System.out.println("source");
+		for(int i=0;i<nList.getLength();i++) {
+			l1.add(((Element)nList.item(i)).getAttribute("type"));
+			System.out.println(l1.get(i));
+			System.out.println(nList.item(i).getTextContent());
+		}
 		
-		return runTests(projectFiles,testFolder);
+		nList=XMLUtils.getElementsByTagName(report2, "failure");
+		List<String> l2=new ArrayList<String>();
+		System.out.println("Target");
+		for(int i=0;i<nList.getLength();i++) {
+			l2.add(((Element)nList.item(i)).getAttribute("type"));
+			System.out.println(l2.get(i));
+			System.out.println(nList.item(i).getTextContent());
+		}
+		
+		return l1.equals(l2);
 	}
 	
 	
@@ -49,6 +74,7 @@ public File run(List<File> projectFiles,File testFolder) throws IOException, Int
 		fw.write(" randoop.main.Main gentests ");
 		fw.write(" --classlist="+classesList);
 		fw.write(" --timelimit="+timeLimit);
+		fw.write(" --ignore-flaky-tests=true");
 		fw.write(" --junit-output-dir="+outDir);
 		fw.flush();
 		fw.close();
@@ -76,8 +102,11 @@ public File run(List<File> projectFiles,File testFolder) throws IOException, Int
 	
 	
 	
-	private File runTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
+	public File runTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
 		File XMLReport= new File(testFolder,"junit_report.xml");
+		for(int i=0;XMLReport.exists();i++){
+			XMLReport= new File(testFolder,"junit_report.xml"+i);
+		}
 		File command=new File(testFolder,"runCommand.sh");
 		FileWriter fw= new FileWriter(command);
 		fw.write("java -classpath jars/*:");
