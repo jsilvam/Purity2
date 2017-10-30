@@ -14,7 +14,7 @@ import java.util.List;
 
 public abstract class FileUtils {
 	
-	public static List<String> listClass(File srcFolder){
+	public static List<String> listClasses(File srcFolder){
 		if(!srcFolder.exists())
 			return new ArrayList<String>();
 		
@@ -24,7 +24,7 @@ public abstract class FileUtils {
 		
 		for(File file:files) {
 			if(file.isDirectory())
-				result.addAll(listClass(file,file.getName()));
+				result.addAll(listClasses(file,file.getName()));
 			else
 				if(file.getName().toLowerCase().endsWith(".java") && 
 						!file.getName().toLowerCase().equals("package-info.java"))
@@ -36,7 +36,7 @@ public abstract class FileUtils {
 		
 	}
 	
-	public static List<String> listClass(File srcFolder,String name){
+	public static List<String> listClasses(File srcFolder,String name){
 		List<String> result= new ArrayList<String>();
 		
 		File[] files=srcFolder.listFiles();
@@ -44,7 +44,7 @@ public abstract class FileUtils {
 		
 		for(File file:files) {
 			if(file.isDirectory())
-				result.addAll(listClass(file,name+"."+file.getName()));
+				result.addAll(listClasses(file,name+"."+file.getName()));
 			else
 				if(file.getName().toLowerCase().endsWith(".java") && 
 						!file.getName().toLowerCase().equals("package-info.java"))

@@ -43,6 +43,8 @@ public class Purity {
 	public int check(String commit, String parent) throws Exception{
 		
 		
+		
+		
 		GithubDownloader git=new GithubDownloader(urlRepository);
 		Test test=new Test();
 		git.setLocation(git.getLocation()+"/"+commit);
@@ -61,12 +63,19 @@ public class Purity {
 		List<File> compiledSourceProject=this.compileProject(sourceFolder);
 		List<File> compiledTargetProject=this.compileProject(targetFolder);
 		
+		
+		
 		//Listar Classes
-		File classesToTest=test.getClassesToTest(sourceFolder);
+		//File classesToTest=test.getClassesToTest(sourceFolder);
+		
+		
+		//List Methods
+		File commonMethods=test.getCommonMethods(sourceFolder, targetFolder);
 		
 		
 		
-		File testsFolder=test.genarateTests(compiledSourceProject, classesToTest, 30, git.getLocation());
+		
+		File testsFolder=test.genarateTests(compiledSourceProject, commonMethods, 30, git.getLocation());
 		test.compileTests(compiledSourceProject,testsFolder);
 		//List<File> compiledTests=compileTests(compiledProject,testsFolder);
 		//System.out.println(compiledTests);
