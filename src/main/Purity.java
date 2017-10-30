@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import utils.FileUtils;
 import utils.GithubDownloader;
 import utils.ZipExtractor;
@@ -20,6 +23,7 @@ import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.Invoker;
+import org.xml.sax.SAXException;
 
 
 
@@ -50,21 +54,28 @@ public class Purity {
 		git.setLocation(git.getLocation()+"/"+commit);
 		
 		
-		File sourceFile=git.downloadCommit(parent);
-		File sourceFolder=ZipExtractor.extract(sourceFile, new File(git.getLocation(),parent));
+		File sourceFolder=new File(git.getLocation(),parent);
+		File targetFolder=new File(git.getLocation(),commit);
+		List<File> compiledSourceProject;
+		List<File> compiledTargetProject;
 		
-		File targetFile=git.downloadCommit(commit);
-		File targetFolder=ZipExtractor.extract(targetFile, new File(git.getLocation(),commit));
-		
-		System.out.println(sourceFolder.getAbsolutePath());
-		
-		
-		//compilar o projeto
-		List<File> compiledSourceProject=this.compileProject(sourceFolder);
-		List<File> compiledTargetProject=this.compileProject(targetFolder);
-		
-		
-		
+		if(!sourceFolder.exists()) {
+			File sourceFile=git.downloadCommit(parent);
+			sourceFolder=ZipExtractor.extract(sourceFile, new File(git.getLocation(),parent));
+			
+			File targetFile=git.downloadCommit(commit);
+			targetFolder=ZipExtractor.extract(targetFile, new File(git.getLocation(),commit));
+			
+			System.out.println(sourceFolder.getAbsolutePath());
+			
+			
+			//compilar o projeto
+			compiledSourceProject=this.compileProject(sourceFolder);
+			compiledTargetProject=this.compileProject(targetFolder);
+		}else {
+			compiledSourceProject=getCompiledProject(sourceFolder);
+			compiledTargetProject=getCompiledProject(targetFolder);
+		}
 		//Listar Classes
 		//File classesToTest=test.getClassesToTest(sourceFolder);
 		
@@ -107,6 +118,12 @@ public class Purity {
 		invoker.execute( request );
 		
 		//encontrar o projeto compilado
+		return getCompiledProject(projectFolder);
+	}
+	
+	private List<File> getCompiledProject(File projectFolder) throws Exception{
+		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
+		XMLUtils.addPlugins(modules);
 		List<File> result=new ArrayList<File>();
 		for(File module:modules) {
 			File folder=new File(module,"target");

@@ -2,18 +2,15 @@ package main;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +18,6 @@ import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -72,26 +68,23 @@ public class Test {
 			Class targetClass= targetClasses.get(sourceClass.getName());
 		
 			for (Constructor constructor : sourceClass.getConstructors()) {
-				
-					fw.write("cons : "+getSignature(constructor)+"\n");
-					System.out.println("Common constructor: "+constructor);
-				
-				/*if (Arrays.asList(targetClass.getConstructors()).contains(constructor)) {
-					fw.write("cons : "+getSignature(constructor)+"\n");
-					System.out.println("Common constructor: "+constructor);
-				}*/
+				for (Constructor c : targetClass.getConstructors()) {
+					if(constructor.toString().equals(c.toString())) {
+						fw.write("cons : "+getSignature(constructor)+"\n");
+						System.out.println("Common constructor: "+constructor);
+					}
+				}
 			}
 			
 			for (Method method: sourceClass.getMethods()) {
-				if (method.getDeclaringClass().equals(sourceClass)) {
-					fw.write("method : "+getSignature(method)+"\n");
-						System.out.println("Common method: "+method.getName());
+				for(Method m: targetClass.getMethods()) {
+					if(method.toString().equals(m.toString())) {
+						fw.write("method : "+getSignature(method)+"\n");
+						System.out.println("Common method: "+method.toGenericString());
+					}
 				}
-				/*if (Arrays.asList(targetClass.getMethods()).contains(method))
-					fw.write("method : "+getSignature(method)+"\n");{
-						System.out.println("Common method: "+method);
-				}*/
 			}
+			//fw.write(sourceClass.getName()+"\n");
 			fw.flush();
 		}	
 		fw.close();
