@@ -48,6 +48,22 @@ public class Test {
 		return l1.equals(l2);
 	}
 	
+	public File getClassesToTest(File sourceFolder, File targetFolder) throws Exception {
+		File file=new File(sourceFolder.getParentFile(),"classesList.txt");
+		FileWriter fw= new FileWriter(file);
+		
+		List<String> sourceClasses= getClassesName(sourceFolder);
+		List<String> targetClasses= getClassesName(targetFolder);
+		
+		for(String clazz: sourceClasses) {
+				System.out.println(clazz);
+				fw.write(clazz+"\n");
+			
+		}
+		fw.flush();
+		fw.close();
+		return file;
+	}
 	
 	public File getCommonMethods(File sourceFolder, File targetFolder) throws Exception {
 		File file=new File(sourceFolder.getParentFile(),"methodsList.txt");
@@ -152,7 +168,7 @@ public class Test {
 	
 	
 	
-	public File genarateTests(List<File> projectFiles,File methodList, int timeLimit, File outputDir) throws IOException, InterruptedException {
+	public File genarateTests(List<File> projectFiles,File classList, File methodList, int timeLimit, File outputDir) throws IOException, InterruptedException {
 		File outDir=new File(outputDir,"tempTest");
 		if(!outDir.exists())
 			outDir.mkdirs();
@@ -163,6 +179,7 @@ public class Test {
 		for(File file:projectFiles)
 			fw.write(":"+file);
 		fw.write(" randoop.main.Main gentests");
+		fw.write(" --classlist="+classList);
 		fw.write(" --methodlist="+methodList);
 		fw.write(" --timelimit="+timeLimit);
 		fw.write(" --ignore-flaky-tests=true");
@@ -193,7 +210,37 @@ public class Test {
 	
 	
 	
-	public File runTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
+	public File runTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException, ParserConfigurationException, SAXException {
+		Map<String,Boolean> flakies=new HashMap<String,Boolean>();
+		
+		File report = runTestsAux(projectFiles,testFolder);
+		NodeList nList=XMLUtils.getElementsByTagName(report, "failure");
+		System.out.println("source");
+		for(int i=0;i<nList.getLength();i++) {
+			flakies.put(((Element)nList.item(i)).getAttribute("type"), true);
+		}
+		
+		report = runTestsAux(projectFiles,testFolder);
+		nList=XMLUtils.getElementsByTagName(report, "failure");
+		System.out.println("source");
+		for(int i=0;i<nList.getLength();i++) {
+			if(flakies.containsKey(((Element)nList.item(i)).getAttribute("type")))
+				flakies.put(((Element)nList.item(i)).getAttribute("type"), false);
+			else
+				flakies.put(((Element)nList.item(i)).getAttribute("type"), true);
+		}
+		
+		System.out.println("Flakies: ");
+		for(String s: flakies.keySet()) {
+			if(flakies.get(s))
+				System.out.println(s);
+		}
+		
+		return report;
+	}
+	
+	
+	public File runTestsAux(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
 		File XMLReport= new File(testFolder,"junit_report.xml");
 		for(int i=0;XMLReport.exists();i++){
 			XMLReport= new File(testFolder,"junit_report.xml"+i);

@@ -79,17 +79,21 @@ public class Purity {
 		//Listar Classes
 		//File classesToTest=test.getClassesToTest(sourceFolder);
 		
-		
-		//List Methods
-		File commonMethods=test.getCommonMethods(sourceFolder, targetFolder);
-		
-		
-		
-		
-		File testsFolder=test.genarateTests(compiledSourceProject, commonMethods, 30, git.getLocation());
-		test.compileTests(compiledSourceProject,testsFolder);
-		//List<File> compiledTests=compileTests(compiledProject,testsFolder);
-		//System.out.println(compiledTests);
+		File testsFolder=new File(git.getLocation(),"tempTest");
+		if(!testsFolder.exists()) {
+			//List Methods
+			File commonMethods=test.getCommonMethods(sourceFolder, targetFolder);
+			
+	
+			//List Classes
+			File classes=test.getClassesToTest(sourceFolder, targetFolder);
+			
+			
+			testsFolder=test.genarateTests(compiledSourceProject, classes, commonMethods, 30, git.getLocation());
+			test.compileTests(compiledSourceProject,testsFolder);
+			//List<File> compiledTests=compileTests(compiledProject,testsFolder);
+			//System.out.println(compiledTests);
+		}
 		
 		
 		
