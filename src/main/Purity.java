@@ -46,18 +46,11 @@ public class Purity {
 
 	public int check(String commit, String parent) throws Exception{
 		
-		
-		
-		
 		GithubDownloader git=new GithubDownloader(urlRepository);
-		Test test=new Test();
 		git.setLocation(git.getLocation()+"/"+commit);
-		
 		
 		File sourceFolder=new File(git.getLocation(),parent);
 		File targetFolder=new File(git.getLocation(),commit);
-		List<File> compiledSourceProject;
-		List<File> compiledTargetProject;
 		
 		if(!sourceFolder.exists()) {
 			File sourceFile=git.downloadCommit(parent);
@@ -68,45 +61,20 @@ public class Purity {
 			
 			System.out.println(sourceFolder.getAbsolutePath());
 			
-			
-			//compilar o projeto
-			compiledSourceProject=this.compileProject(sourceFolder);
-			compiledTargetProject=this.compileProject(targetFolder);
-		}else {
-			compiledSourceProject=getCompiledProject(sourceFolder);
-			compiledTargetProject=getCompiledProject(targetFolder);
-		}
-		//Listar Classes
-		//File classesToTest=test.getClassesToTest(sourceFolder);
-		
-		File testsFolder=new File(git.getLocation(),"tempTest");
-		if(!testsFolder.exists()) {
-			//List Methods
-			File commonMethods=test.getCommonMethods(sourceFolder, targetFolder);
-			
-	
-			//List Classes
-			File classes=test.getClassesToTest(sourceFolder, targetFolder);
-			
-			
-			testsFolder=test.genarateTests(compiledSourceProject, classes, commonMethods, 30, git.getLocation());
-			test.compileTests(compiledSourceProject,testsFolder);
-			//List<File> compiledTests=compileTests(compiledProject,testsFolder);
-			//System.out.println(compiledTests);
+			this.compileProject(sourceFolder);
+			this.compileProject(targetFolder);
 		}
 		
+		Test test=new Test(sourceFolder,targetFolder);
+		test.generate(90);
+		//System.out.println(test.hasSameBehaviour());
 		
-		
-		File sourceReport=test.runTests(compiledSourceProject,testsFolder);
-		File targetReport=test.runTests(compiledTargetProject,testsFolder);
-		
-		System.out.println(test.compare(sourceReport, targetReport));
 		System.exit(0);
 		
 		return 0;
 	}
 	
-	private List<File> compileProject(File projectFolder) throws Exception{
+	private void compileProject(File projectFolder) throws Exception{
 		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
 		XMLUtils.addPlugins(modules);
 		
@@ -120,21 +88,6 @@ public class Purity {
 		request.setPomFile( new File( projectFolder,"pom.xml" ) );
 		request.setGoals( Arrays.asList( "install" , "-DskipTests") );
 		invoker.execute( request );
-		
-		//encontrar o projeto compilado
-		return getCompiledProject(projectFolder);
-	}
-	
-	private List<File> getCompiledProject(File projectFolder) throws Exception{
-		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
-		XMLUtils.addPlugins(modules);
-		List<File> result=new ArrayList<File>();
-		for(File module:modules) {
-			File folder=new File(module,"target");
-			if(folder.exists())
-				result.add(FileUtils.findSingleFile(folder, ".*jar-with-dependencies.jar"));
-		}
-		return result;
 	}
 	
 	

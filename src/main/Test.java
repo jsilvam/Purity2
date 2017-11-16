@@ -26,6 +26,205 @@ import utils.XMLUtils;
 
 public class Test {
 	
+	private File testsFolder;
+	private List<String> flakies;
+	private File sourceProjectFolder;
+	private List<File> compiledSourceProject;
+	private File targetProjectFolder;
+	private List<File> compiledTargetProject; 
+
+	public Test(File sourceProjectFolder, File targetProjectFolder) throws Exception {
+		this.sourceProjectFolder = sourceProjectFolder;
+		this.targetProjectFolder = targetProjectFolder;
+		this.compiledSourceProject = this.getCompiledFiles(sourceProjectFolder);
+		this.compiledTargetProject = this.getCompiledFiles(targetProjectFolder);
+		testsFolder = new File(sourceProjectFolder.getParentFile(),"TestsFolder");
+		if(!testsFolder.exists())
+			testsFolder.mkdirs();
+	}
+	
+	public File getSourceProjectFolder() {
+		return sourceProjectFolder;
+	}
+
+	public void setSourceProjectFolder(File sourceProjectFolder) {
+		this.sourceProjectFolder = sourceProjectFolder;
+	}
+
+	public File getTargetProjectFolder() {
+		return targetProjectFolder;
+	}
+
+	public void setTargetProjectFolder(File targetProjectFolder) {
+		this.targetProjectFolder = targetProjectFolder;
+	}
+
+	public File getTestsFolder() {
+		return testsFolder;
+	}
+
+	public List<String> getFlakies() {
+		return flakies;
+	}
+	
+	public void generate(int timeLimit) throws Exception {
+		File commonMethods=getCommonMethods();
+		generateTests(commonMethods, timeLimit);
+		compileTests();
+	}
+	
+	public boolean hasSameBehaviour() throws IOException, InterruptedException, ParserConfigurationException, SAXException {
+		File sourceReport=runTests(compiledSourceProject);
+		File targetReport=runTests(compiledTargetProject);
+		return compare(sourceReport, targetReport);
+	};
+	
+	private File getCommonMethods() throws Exception {
+		File file=new File(testsFolder,"methodsList.txt");
+		FileWriter fw= new FileWriter(file);
+		
+		Map<String,Class> sourceClasses=getClasses(sourceProjectFolder, compiledSourceProject);
+		Map<String,Class> targetClasses=getClasses(targetProjectFolder, compiledTargetProject);
+		
+		for(Class sourceClass: sourceClasses.values()) {
+			//skip if the target doesn't contains this class
+			if(!targetClasses.containsKey(sourceClass.getName())) {
+				System.out.println("Not common class: "+sourceClass                                                                                                                                 );
+				continue;
+			}
+			
+			System.out.println("Common Class: "+sourceClass);
+			
+			Class targetClass= targetClasses.get(sourceClass.getName());
+		
+			for (Constructor constructor : sourceClass.getConstructors()) {
+				for (Constructor c : targetClass.getConstructors()) {
+					if(constructor.toString().equals(c.toString())) {
+						fw.write("cons : "+getSignature(constructor)+"\n");
+						System.out.println("Common constructor: "+constructor);
+						break;
+					}
+				}
+			}
+			
+			for (Method method: sourceClass.getMethods()) {
+				for(Method m: targetClass.getMethods()) {
+					if(method.toString().equals(m.toString()) && method.getDeclaringClass().equals(sourceClass)) {
+						fw.write("method : "+getSignature(method)+"\n");
+						System.out.println("Common method: "+method.toGenericString());
+						break;
+					}
+				}
+			}
+			fw.flush();
+		}	
+		fw.close();
+		return file;
+	}
+	
+	private void generateTests(File methodList, int timeLimit) throws IOException, InterruptedException {
+		String command="java -ea";
+		
+		command+=" -classpath jars/randoop/*";
+		for(File file:compiledSourceProject)
+			command+=":"+file;
+		command+=" randoop.main.Main gentests";
+		command+=" --testclass=NoClassToTest";
+		command+=" --methodlist="+methodList;
+		command+=" --timelimit="+timeLimit;
+		command+=" --ignore-flaky-tests=true";
+		command+=" --junit-output-dir="+testsFolder;
+		
+		
+		File commandFile=new File(testsFolder,"generateCommand.sh");
+		FileWriter fw= new FileWriter(commandFile);
+		fw.write(command);
+		fw.flush();
+		fw.close();
+		
+		FileUtils.runProcess("bash "+commandFile);
+	}
+	
+	private void compileTests() throws IOException, InterruptedException{
+		File command=new File(testsFolder,"compileCommand.sh");
+		FileWriter fw= new FileWriter(command);
+		fw.write("javac -classpath jars/junit/*");
+		for(File file:compiledSourceProject)
+			fw.write(":"+file);
+		fw.write(" $(find "+testsFolder+"/* | grep .java)");
+		fw.flush();
+		fw.close();
+		
+		FileUtils.runProcess("bash "+command);
+	}
+	
+	private Map<String,Class> getClasses(File projectFolder, List<File> compiledFiles) throws Exception {	
+		Map<String,Class> classes=new HashMap<String,Class>();
+		List<String> cls=getClassesName(projectFolder);
+		List<URL> urls = new ArrayList<URL>();
+		
+		for(File f: compiledFiles)
+			urls.add(f.toURI().toURL());
+		
+		ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]));
+		
+		for(String c:cls) {
+			Class clazz;
+			try {
+				clazz=cl.loadClass(c);
+				classes.put(clazz.getName(), clazz);
+			}catch(ClassNotFoundException e) {
+			}
+		}
+		return classes;
+	}
+	
+	private static List<String> getClassesName(File projectFolder) throws Exception {
+		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
+		List<String> classes=new ArrayList<String>();
+		for(File module:modules) {
+			classes.addAll(FileUtils.listClasses(new File(module,"src/main/java")));
+		}
+		return classes;
+	}
+	
+	private String getSignature(Executable m) {
+		String signature=m.getDeclaringClass().getName()+".";
+		if(m instanceof Constructor)
+			signature+="<init>(";
+		else
+			signature+=m.getName()+"(";
+		Class[] c=m.getParameterTypes();
+		for(int i=0;i<c.length;i++) {
+			signature+=c[i].getName();
+			if(i<(c.length-1))
+				signature+=", ";
+		}
+		
+		signature+=")";
+		return signature;
+	}
+	
+	private File runTests(List<File> projectFiles) throws IOException, InterruptedException {
+		File XMLReport= new File(testsFolder,"junit_report.xml");
+		for(int i=0;XMLReport.exists();i++){
+			XMLReport= new File(testsFolder,"junit_report"+i+".xml");
+		}
+		File command=new File(testsFolder,"runCommand.sh");
+		FileWriter fw= new FileWriter(command);
+		fw.write("java -classpath jars/junit/*:");
+		fw.write(testsFolder+"/.");
+		for(File file:projectFiles)
+			fw.write(":"+file);
+		fw.write(" -Dorg.schmant.task.junit4.target="+XMLReport);
+		fw.write(" barrypitman.junitXmlFormatter.Runner RegressionTest");
+		fw.flush();
+		fw.close();
+		
+		FileUtils.runProcess("bash "+command);
+		return XMLReport;
+	}
+	
 	public boolean compare(File report1, File report2) throws ParserConfigurationException, SAXException, IOException {
 		NodeList nList=XMLUtils.getElementsByTagName(report1, "failure");
 		List<String> l1=new ArrayList<String>();
@@ -48,253 +247,16 @@ public class Test {
 		return l1.equals(l2);
 	}
 	
-	public File getClassesToTest(File sourceFolder, File targetFolder) throws Exception {
-		File file=new File(sourceFolder.getParentFile(),"classesList.txt");
-		FileWriter fw= new FileWriter(file);
-		
-		List<String> sourceClasses= getClassesName(sourceFolder);
-		List<String> targetClasses= getClassesName(targetFolder);
-		
-		for(String clazz: sourceClasses) {
-				System.out.println(clazz);
-				fw.write(clazz+"\n");
-			
-		}
-		fw.flush();
-		fw.close();
-		return file;
-	}
-	
-	public File getCommonMethods(File sourceFolder, File targetFolder) throws Exception {
-		File file=new File(sourceFolder.getParentFile(),"methodsList.txt");
-		FileWriter fw= new FileWriter(file);
-		
-		Map<String,Class> sourceClasses=getClasses(sourceFolder);
-		Map<String,Class> targetClasses=getClasses(targetFolder);
-		
-		for(Class sourceClass: sourceClasses.values()) {
-			//skip if the target doesn't contains this class
-			if(!targetClasses.containsKey(sourceClass.getName())) {
-				System.out.println("Not common class: "+sourceClass                                                                                                                                 );
-				continue;
-			}
-			
-			System.out.println("Common Class: "+sourceClass);
-			
-			Class targetClass= targetClasses.get(sourceClass.getName());
-		
-			for (Constructor constructor : sourceClass.getConstructors()) {
-				for (Constructor c : targetClass.getConstructors()) {
-					if(constructor.toString().equals(c.toString())) {
-						fw.write("cons : "+getSignature(constructor)+"\n");
-						System.out.println("Common constructor: "+constructor);
-					}
-				}
-			}
-			
-			for (Method method: sourceClass.getMethods()) {
-				for(Method m: targetClass.getMethods()) {
-					if(method.toString().equals(m.toString())) {
-						fw.write("method : "+getSignature(method)+"\n");
-						System.out.println("Common method: "+method.toGenericString());
-					}
-				}
-			}
-			//fw.write(sourceClass.getName()+"\n");
-			fw.flush();
-		}	
-		fw.close();
-		return file;
-	}
-	
-	
-	private String getSignature(Executable m) {
-		String signature=m.getDeclaringClass().getName()+".";
-		if(m instanceof Constructor)
-			signature+="<init>(";
-		else
-			signature+=m.getName()+"(";
-		Class[] c=m.getParameterTypes();
-		for(int i=0;i<c.length;i++) {
-			signature+=c[i].getName();
-			if(i<(c.length-1))
-				signature+=", ";
-		}
-		
-		signature+=")";
-		return signature;
-	}
-	
-	
-	private Map<String,Class> getClasses(File projectFolder) throws Exception {
-		
-		Map<String,Class> classes=new HashMap<String,Class>();
-		List<String> cls=getClassesName(projectFolder);
-		List<URL> urls=getCompiledFiles(projectFolder);
-		
-		
-		ClassLoader cl = new URLClassLoader(urls.toArray(new URL[0]));
-		
-		for(String c:cls) {
-			Class clazz;
-			try {
-				clazz=cl.loadClass(c);
-				classes.put(clazz.getName(), clazz);
-			}catch(ClassNotFoundException e) {
-			}
-		}
-		return classes;
-	}
-	
-	private static List<String> getClassesName(File projectFolder) throws Exception {
+	private List<File> getCompiledFiles(File projectFolder) throws Exception {
 		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
-		List<String> classes=new ArrayList<String>();
-		for(File module:modules) {
-			classes.addAll(FileUtils.listClasses(new File(module,"src/main/java")));
-		}
-		return classes;
-	}
-	
-	private static List<URL> getCompiledFiles(File projectFolder) throws Exception {
-		List<File> modules=XMLUtils.getModules(new File(projectFolder,"pom.xml"));
-		List<URL> result=new ArrayList<URL>();
+		List<File> result=new ArrayList<File>();
 		for(File module:modules) {
 			File folder=new File(module,"target");
 			if(folder.exists())
-				result.add(FileUtils.findSingleFile(folder, ".*jar-with-dependencies.jar").toURI().toURL());
+				result.add(FileUtils.findSingleFile(folder, ".*jar-with-dependencies.jar"));
 		}
 		return result;
 	}
 	
-	
-	
-	public File genarateTests(List<File> projectFiles,File classList, File methodList, int timeLimit, File outputDir) throws IOException, InterruptedException {
-		File outDir=new File(outputDir,"tempTest");
-		if(!outDir.exists())
-			outDir.mkdirs();
-		File command=new File(outDir,"generateCommand.sh");
-		FileWriter fw= new FileWriter(command);
-		fw.write("java -ea");
-		fw.write(" -classpath jars/randoop/*");
-		for(File file:projectFiles)
-			fw.write(":"+file);
-		fw.write(" randoop.main.Main gentests");
-		fw.write(" --classlist="+classList);
-		fw.write(" --methodlist="+methodList);
-		fw.write(" --timelimit="+timeLimit);
-		fw.write(" --ignore-flaky-tests=true");
-		fw.write(" --junit-output-dir="+outDir);
-		fw.flush();
-		fw.close();
-		
-		runProcess("bash "+command);
-		return outDir;
-		//return FileUtils.findFiles(outDir, "RegressionTest.*.java");
-	}
-	
-	
-	public void compileTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException{
-		File command=new File(testFolder,"compileCommand.sh");
-		FileWriter fw= new FileWriter(command);
-		fw.write("javac -classpath jars/junit/*");
-		for(File file:projectFiles)
-			fw.write(":"+file);
-		fw.write(" $(find "+testFolder+"/* | grep .java)");
-		fw.flush();
-		fw.close();
-		
-		runProcess("bash "+command);
-		//return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
-		
-	}
-	
-	
-	
-	public File runTests(List<File> projectFiles,File testFolder) throws IOException, InterruptedException, ParserConfigurationException, SAXException {
-		Map<String,Boolean> flakies=new HashMap<String,Boolean>();
-		
-		File report = runTestsAux(projectFiles,testFolder);
-		NodeList nList=XMLUtils.getElementsByTagName(report, "failure");
-		System.out.println("source");
-		for(int i=0;i<nList.getLength();i++) {
-			flakies.put(((Element)nList.item(i)).getAttribute("type"), true);
-		}
-		
-		report = runTestsAux(projectFiles,testFolder);
-		nList=XMLUtils.getElementsByTagName(report, "failure");
-		System.out.println("source");
-		for(int i=0;i<nList.getLength();i++) {
-			if(flakies.containsKey(((Element)nList.item(i)).getAttribute("type")))
-				flakies.put(((Element)nList.item(i)).getAttribute("type"), false);
-			else
-				flakies.put(((Element)nList.item(i)).getAttribute("type"), true);
-		}
-		
-		System.out.println("Flakies: ");
-		for(String s: flakies.keySet()) {
-			if(flakies.get(s))
-				System.out.println(s);
-		}
-		
-		return report;
-	}
-	
-	
-	public File runTestsAux(List<File> projectFiles,File testFolder) throws IOException, InterruptedException {
-		File XMLReport= new File(testFolder,"junit_report.xml");
-		for(int i=0;XMLReport.exists();i++){
-			XMLReport= new File(testFolder,"junit_report.xml"+i);
-		}
-		File command=new File(testFolder,"runCommand.sh");
-		FileWriter fw= new FileWriter(command);
-		fw.write("java -classpath jars/junit/*:");
-		fw.write(testFolder+"/.");
-		for(File file:projectFiles)
-			fw.write(":"+file);
-		fw.write(" -Dorg.schmant.task.junit4.target="+XMLReport);
-		fw.write(" barrypitman.junitXmlFormatter.Runner RegressionTest");
-		fw.flush();
-		fw.close();
-		
-		runProcess("bash "+command);
-		return XMLReport;
-		/*JUnitCore junit = new JUnitCore();
-		List<Result> result=new ArrayList<Result>();
-		for(File test:tests) {
-			result.add(junit.run(Class.forName(test.getAbsolutePath())));
-		}
-		return result;*/
-	}
-	
-	
-	@Deprecated
-	public void test(List<File> projectFiles) throws IOException, InterruptedException{
-		File command=new File("testCommand.sh");
-		FileWriter fw= new FileWriter(command);
-		fw.write("java -classpath jars/*");
-		for(File file:projectFiles)
-			fw.write(":"+file);
-		fw.flush();
-		fw.close();
-		
-		//runProcess("bash "+command);
-		//return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
-		
-	}
-	
-	
-	
-	
-	public void runProcess(String command) throws IOException, InterruptedException {
-		
-		Process p=Runtime.getRuntime().exec(command);
-		BufferedReader reader =
-				new BufferedReader(new InputStreamReader(p.getInputStream()));
-		String s;
-		while ((s=reader.readLine()) != null)
-			System.out.println(s);
-		p.waitFor();
-		//return FileUtils.findFiles(testFiles.get(0).getParentFile(), "RegressionTest.*.class");
-		
-	}
+
 }

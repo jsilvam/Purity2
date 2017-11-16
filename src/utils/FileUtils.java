@@ -1,11 +1,13 @@
 package utils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -100,6 +102,17 @@ public abstract class FileUtils {
 			inputStream.close();
 			outputStream.close();
 		}
+	}
+	
+	public static void runProcess(String command) throws IOException, InterruptedException {
+		
+		Process p=Runtime.getRuntime().exec(command);
+		BufferedReader reader =
+				new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String s;
+		while ((s=reader.readLine()) != null)
+			System.out.println(s);
+		p.waitFor();	
 	}
 	
 
