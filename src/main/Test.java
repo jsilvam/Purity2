@@ -12,8 +12,10 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -27,7 +29,7 @@ import utils.XMLUtils;
 public class Test {
 	
 	private File testsFolder;
-	private List<String> flakies;
+	private Set<String> flakeys;
 	private File sourceProjectFolder;
 	private List<File> compiledSourceProject;
 	private File targetProjectFolder;
@@ -41,6 +43,7 @@ public class Test {
 		testsFolder = new File(sourceProjectFolder.getParentFile(),"TestsFolder");
 		if(!testsFolder.exists())
 			testsFolder.mkdirs();
+		flakeys=null;
 	}
 	
 	public File getSourceProjectFolder() {
@@ -63,14 +66,16 @@ public class Test {
 		return testsFolder;
 	}
 
-	public List<String> getFlakies() {
-		return flakies;
+	public Set<String> getFlakeys() {
+		return flakeys;
 	}
 	
 	public void generate(int timeLimit) throws Exception {
 		File commonMethods=getCommonMethods();
 		generateTests(commonMethods, timeLimit);
 		compileTests();
+		System.out.println("Checking Flakiness...");
+		checkFlakiness(3);
 	}
 	
 	public boolean hasSameBehaviour() throws IOException, InterruptedException, ParserConfigurationException, SAXException {
@@ -142,7 +147,7 @@ public class Test {
 		fw.flush();
 		fw.close();
 		
-		FileUtils.runProcess("bash "+commandFile);
+		FileUtils.runProcess("bash "+commandFile,timeLimit+60);
 	}
 	
 	private void compileTests() throws IOException, InterruptedException{
@@ -156,6 +161,43 @@ public class Test {
 		fw.close();
 		
 		FileUtils.runProcess("bash "+command);
+	}
+	
+	private void checkFlakiness(int interactions) throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+		Map<String,Boolean> flakeys=new HashMap<String,Boolean>();
+		File report=runTests(compiledSourceProject);
+		NodeList nList=XMLUtils.getElementsByTagName(report, "failure");
+		
+		for(int i=0;i<nList.getLength();i++) {
+			String fail=((Element)nList.item(i)).getAttribute("type");
+			flakeys.put(fail, false);
+		}
+		
+		for(int i=1;i<interactions;i++) {
+			report=runTests(compiledSourceProject);
+			nList=XMLUtils.getElementsByTagName(report, "failure");
+			Set<String> l1=new HashSet<String>();
+			for(int j=0;j<nList.getLength();j++) {
+				String fail=((Element)nList.item(j)).getAttribute("type");
+				if(flakeys.containsKey(fail))
+					flakeys.put(fail, true);
+				else
+					l1.add(fail);
+			}
+			for(String s:flakeys.keySet()) {
+				if(!flakeys.get(s) && !l1.contains(s))
+					flakeys.put(s, true);
+			}	
+		}
+		
+		this.flakeys=new HashSet<String>();
+		for(String s:flakeys.keySet()) {
+			if(!flakeys.get(s))
+				this.flakeys.add(s);
+		}
+		
+		
+			
 	}
 	
 	private Map<String,Class> getClasses(File projectFolder, List<File> compiledFiles) throws Exception {	
@@ -227,21 +269,24 @@ public class Test {
 	
 	public boolean compare(File report1, File report2) throws ParserConfigurationException, SAXException, IOException {
 		NodeList nList=XMLUtils.getElementsByTagName(report1, "failure");
-		List<String> l1=new ArrayList<String>();
+		Set<String> l1=new HashSet<String>();
 		System.out.println("source");
 		for(int i=0;i<nList.getLength();i++) {
 			l1.add(((Element)nList.item(i)).getAttribute("type"));
-			System.out.println(l1.get(i));
 			System.out.println(nList.item(i).getTextContent());
 		}
 		
 		nList=XMLUtils.getElementsByTagName(report2, "failure");
-		List<String> l2=new ArrayList<String>();
+		Set<String> l2=new HashSet<String>();
 		System.out.println("Target");
 		for(int i=0;i<nList.getLength();i++) {
 			l2.add(((Element)nList.item(i)).getAttribute("type"));
-			System.out.println(l2.get(i));
 			System.out.println(nList.item(i).getTextContent());
+		}
+		
+		if(this.flakeys!=null) {
+			l1.removeAll(this.flakeys);
+			l2.removeAll(this.flakeys);
 		}
 		
 		return l1.equals(l2);

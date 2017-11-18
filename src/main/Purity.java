@@ -40,14 +40,15 @@ public class Purity {
 	}
 	
 	public String getUrlRepository(){
-		return this.urlRepository;
+		return this.urlRepository;	
 	}
 	
 
-	public int check(String commit, String parent) throws Exception{
+	public boolean check(String commit, String parent) throws Exception{
 		
 		GithubDownloader git=new GithubDownloader(urlRepository);
-		git.setLocation(git.getLocation()+"/"+commit);
+		//git.setLocation(git.getLocation()+"/"+commit);
+		git.setLocation("/home/jaziel/testeProjeto/"+commit);
 		
 		File sourceFolder=new File(git.getLocation(),parent);
 		File targetFolder=new File(git.getLocation(),commit);
@@ -66,12 +67,11 @@ public class Purity {
 		}
 		
 		Test test=new Test(sourceFolder,targetFolder);
-		test.generate(90);
-		//System.out.println(test.hasSameBehaviour());
+		test.generate(120);
+		System.out.println(test.hasSameBehaviour());
 		
 		System.exit(0);
-		
-		return 0;
+		return test.hasSameBehaviour();
 	}
 	
 	private void compileProject(File projectFolder) throws Exception{

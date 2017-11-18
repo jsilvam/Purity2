@@ -115,5 +115,39 @@ public abstract class FileUtils {
 		p.waitFor();	
 	}
 	
+	public static void runProcess(String command, int timeLimit) throws InterruptedException, IOException {
+		Process p=Runtime.getRuntime().exec(command);
+		
+		
+		
+		BufferedReader reader =
+				new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String s;
+		
+		Thread t=new Thread() {
+			
+			@Override
+			public void run() {
+				try {
+					for(int i=0;i<timeLimit;i++) {
+						if(!p.isAlive())
+							this.interrupt();
+						Thread.sleep(1000);
+					}
+					p.destroy();
+				} catch (InterruptedException e) {
+				}
+			}
+		};
+		
+		t.start();
+		try {
+			while ((s=reader.readLine()) != null)
+				System.out.println(s);
+		} catch (IOException e) {
+		}
+		p.waitFor();
+		Thread.sleep(1000);
+	}
 
 }
