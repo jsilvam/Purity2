@@ -2,9 +2,11 @@
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Scanner;
 
 public class Main {
@@ -24,7 +26,11 @@ public class Main {
 		Purity p=new Purity(repositoryUrl);
 		Scanner in = new Scanner(new FileReader(dir+"/Part 1/"+aux+".csv")).useDelimiter(";");
 		FileWriter fw= new FileWriter(new File(dir+"/Part 2/"+aux+".csv"));
-
+		
+		
+		PrintStream ps = new PrintStream(
+			     new FileOutputStream(dir+"\\Part 2\\"+aux+" - log.txt", true));
+		
 		fw.write("Commit;isRefactoring\n");
 		fw.flush();
 		String commit="";
@@ -47,6 +53,9 @@ public class Main {
 				} catch (Exception e) {
 					fw.write((-1)+"\n");
 					System.out.println("Same Behaviour: Error");
+					ps.println("Commit error: "+commit);
+					e.printStackTrace(ps);
+					ps.flush();
 				}
 				fw.flush();
 				
@@ -54,6 +63,8 @@ public class Main {
 			in.nextLine();
 		}
 		in.close();
+		ps.close();
+		fw.close();
 	}
 
 	public static void main(String[] args) throws Exception {

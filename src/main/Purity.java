@@ -68,9 +68,6 @@ public class Purity {
 		
 		Test test=new Test(sourceFolder,targetFolder);
 		test.generate(120);
-		System.out.println(test.hasSameBehaviour());
-		
-		System.exit(0);
 		return test.hasSameBehaviour();
 	}
 	

@@ -40,6 +40,8 @@ public class Test {
 		this.targetProjectFolder = targetProjectFolder;
 		this.compiledSourceProject = this.getCompiledFiles(sourceProjectFolder);
 		this.compiledTargetProject = this.getCompiledFiles(targetProjectFolder);
+		if(this.compiledSourceProject.isEmpty() || this.compiledTargetProject.isEmpty())
+			throw new Exception("Compiling error");
 		testsFolder = new File(sourceProjectFolder.getParentFile(),"TestsFolder");
 		if(!testsFolder.exists())
 			testsFolder.mkdirs();
@@ -288,6 +290,19 @@ public class Test {
 			l1.removeAll(this.flakeys);
 			l2.removeAll(this.flakeys);
 		}
+		
+
+		System.out.println("Tests Flakeys: ");
+		for(String s: this.flakeys)
+			System.out.println(s);
+		
+		System.out.println("Report 1 Tests Fails: ");
+		for(String s: l1)
+			System.out.println(s);
+		
+		System.out.println("Report 2 Tests Fails: ");
+		for(String s: l2)
+			System.out.println(s);
 		
 		return l1.equals(l2);
 	}
