@@ -29,7 +29,7 @@ public class Main {
 		
 		
 		PrintStream ps = new PrintStream(
-			     new FileOutputStream(dir+"\\Part 2\\"+aux+" - log.txt", true));
+			     new FileOutputStream(dir+"/Part 2/"+aux+" - log.txt", true));
 		
 		fw.write("Commit;isRefactoring\n");
 		fw.flush();
@@ -71,6 +71,7 @@ public class Main {
 
 		
 		check("https://github.com/square/retrofit");
+		check("https://github.com/alibaba/dubbo");
 		
 
 	}

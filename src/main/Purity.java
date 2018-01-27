@@ -47,8 +47,8 @@ public class Purity {
 	public boolean check(String commit, String parent) throws Exception{
 		
 		GithubDownloader git=new GithubDownloader(urlRepository);
-		//git.setLocation(git.getLocation()+"/"+commit);
-		git.setLocation("/home/jaziel/testeProjeto/"+commit);
+		git.setLocation(git.getLocation()+"/"+commit);
+		//git.setLocation("/home/jaziel/testeProjeto/okhttp/"+commit);
 		
 		File sourceFolder=new File(git.getLocation(),parent);
 		File targetFolder=new File(git.getLocation(),commit);
@@ -68,7 +68,9 @@ public class Purity {
 		
 		Test test=new Test(sourceFolder,targetFolder);
 		test.generate(120);
-		return test.hasSameBehaviour();
+		boolean hasSameBehaviour=test.hasSameBehaviour();
+		this.deleteDirectory(git.getLocation());
+		return hasSameBehaviour;
 	}
 	
 	private void compileProject(File projectFolder) throws Exception{
