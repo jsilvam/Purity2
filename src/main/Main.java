@@ -70,8 +70,7 @@ public class Main {
 	public static void main(String[] args) throws Exception {
 
 		
-		check("https://github.com/square/retrofit");
-		check("https://github.com/alibaba/dubbo");
+		check("https://github.com/spring-cloud/spring-cloud-netflix");
 		
 
 	}

@@ -165,6 +165,8 @@ public class Test {
 		FileUtils.runProcess("bash "+command);
 	}
 	
+	
+	//verify code!
 	private void checkFlakiness(int interactions) throws ParserConfigurationException, SAXException, IOException, InterruptedException {
 		Map<String,Boolean> flakeys=new HashMap<String,Boolean>();
 		File report=runTests(compiledSourceProject);
