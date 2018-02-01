@@ -48,7 +48,7 @@ public class Main {
 					if(sameBehaviour)
 						fw.write(1+"\n");
 					else
-						fw.write(2+"\n");
+						fw.write(0+"\n");
 					System.out.println("Same Behaviour: "+sameBehaviour);
 				} catch (Exception e) {
 					fw.write((-1)+"\n");
@@ -71,6 +71,9 @@ public class Main {
 
 		
 		check("https://github.com/spring-cloud/spring-cloud-netflix");
+		check("https://github.com/spring-projects/spring-boot");
+		check("https://github.com/junit-team/junit4");
+		check("https://github.com/prestodb/presto");
 		
 
 	}
