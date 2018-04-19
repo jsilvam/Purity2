@@ -36,9 +36,14 @@ public abstract class XMLUtils {
 		if(!xmlFile.exists())
 			return result;
 		
-		result.add(xmlFile.getParentFile());
+		NodeList nList=getElementsByTagName(xmlFile,"packaging");
+		Node node=nList.item(0);
+		if(node == null)
+			result.add(xmlFile.getParentFile());
+		else if(!node.getTextContent().equals("pom"))
+			result.add(xmlFile.getParentFile());
 		
-		NodeList nList=getElementsByTagName(xmlFile,"module");
+		nList=getElementsByTagName(xmlFile,"module");
 		for(int i=0; i<nList.getLength();i++) {
 			File module=new File(xmlFile.getParentFile(),nList.item(i).getTextContent());
 			result.addAll(getModules(new File(module,"pom.xml")));

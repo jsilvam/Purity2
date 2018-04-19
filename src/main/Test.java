@@ -210,7 +210,8 @@ public class Test {
 		List<URL> urls = new ArrayList<URL>();
 		
 		for(File f: compiledFiles)
-			urls.add(f.toURI().toURL());
+			if(f!=null)
+				urls.add(f.toURI().toURL());
 		
 		ClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]));
 		
