@@ -65,7 +65,6 @@ public class Purity {
 			this.compileProject(sourceFolder);
 			this.compileProject(targetFolder);
 		}
-		
 		Test test=new Test(sourceFolder,targetFolder);
 		test.generate(120);
 		boolean hasSameBehaviour=test.hasSameBehaviour();
